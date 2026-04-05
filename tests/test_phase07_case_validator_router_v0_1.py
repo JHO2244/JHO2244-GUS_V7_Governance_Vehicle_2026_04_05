@@ -87,7 +87,10 @@ def _build_valid_case():
         },
         "expected_output": "PASS",
     }
-
+def _build_valid_case_bc02():
+    case = _build_valid_case()
+    case["case_id"] = "BC-02"
+    return case
 
 def test_phase07_router_pass():
     case = _build_valid_case()
@@ -133,4 +136,7 @@ def test_phase07_router_invalid_validator_output(monkeypatch):
 
     case = _build_valid_case()
     assert route_and_validate_case(case) == FAIL
-    
+
+def test_phase08_router_bc02_placeholder_fail():
+    case = _build_valid_case_bc02()
+    assert route_and_validate_case(case) == FAIL
