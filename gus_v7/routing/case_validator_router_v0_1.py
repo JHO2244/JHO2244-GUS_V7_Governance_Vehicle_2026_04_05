@@ -1,6 +1,6 @@
 """
-GUS v7 — Phase 10
-Router Contract Lock (v0.1)
+GUS v7 — Phase 13
+Router Contract Expansion (v0.1)
 
 STRICT:
 - Deterministic routing only
@@ -8,7 +8,7 @@ STRICT:
 - No inference
 - No fallback
 - No dynamic discovery beyond canonical registry mapping
-- Output contract locked to PASS or FAIL only
+- Output contract locked to PASS, FAIL, or INSUFFICIENT_EVIDENCE only
 """
 
 from __future__ import annotations
@@ -21,8 +21,9 @@ from gus_v7.registry.case_registry_v0_1 import CASE_REGISTRY_V0_1
 
 PASS = "PASS"
 FAIL = "FAIL"
+INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
 
-ROUTER_ALLOWED_OUTPUTS_V0_1 = (PASS, FAIL)
+ROUTER_ALLOWED_OUTPUTS_V0_1 = (PASS, FAIL, INSUFFICIENT_EVIDENCE)
 ROUTER_REQUIRED_REGISTRY_ENTRY_KEYS_V0_1 = (
     "schema_module",
     "validator_module",
@@ -82,13 +83,14 @@ def _resolve_validator_v0_1(registry_entry: dict[str, str]):
 
 def route_and_validate_case(case_data: dict) -> str:
     """
-    Route a case object to its canonical validator and return PASS or FAIL.
+    Route a case object to its canonical validator and return a router-approved
+    deterministic outcome.
 
     Contract:
     - input must be a dict with non-empty string case_id
     - routing is canonical via CASE_REGISTRY_V0_1 only
     - no fallback, no inference, no alternative path
-    - output must be PASS or FAIL only
+    - output must be PASS, FAIL, or INSUFFICIENT_EVIDENCE only
 
     Fail-closed on:
     - invalid input
