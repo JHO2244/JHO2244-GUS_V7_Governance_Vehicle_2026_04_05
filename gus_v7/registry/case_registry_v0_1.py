@@ -116,8 +116,8 @@ _CASE_REGISTRY_SOURCE_V0_1 = {
         "validator_module": "gus_v7.validators.benchmark_case_01_validator_v0_1",
         "validator_function": "validate_benchmark_case_01",
     },
-    "BC-02": {
-        "schema_module": "gus_v7.cases.benchmark_case_01_schema_v0_1",
+        "BC-02": {
+        "schema_module": "gus_v7.cases.benchmark_case_02_schema_v0_1",
         "validator_module": "gus_v7.validators.benchmark_case_02_validator_v0_1",
         "validator_function": "validate_benchmark_case_02",
     },
