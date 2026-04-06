@@ -5,34 +5,36 @@ from typing import Any
 from gus_v7.routing.ingestion_boundary_v0_1 import ingest_case_payload_v0_1
 
 
-ALLOWED_CHANNELS_V0_1 = (
-    "manual",
-    "system",
-)
+CHANNEL_POLICY_V0_1 = {
+    "manual": {
+        "allowed": True,
+        "batch_allowed": False,
+    },
+    "system": {
+        "allowed": True,
+        "batch_allowed": True,
+    },
+}
 
 
 def intake_channel_router_v0_1(envelope: dict[str, Any]) -> dict[str, Any]:
     """
-    GUS v7 — Phase 18
-    Controlled Ingestion Pipeline / Intake Routing (v0.1)
+    GUS v7 — Phase 19
+    Intake Channel Policy Lock (v0.1)
+
+    EXTENDS Phase 18:
+    - Adds strict channel policy enforcement
+    - Keeps full Phase 18 guarantees
 
     STRICT:
-    - envelope must be a dict
-    - envelope must contain exactly:
-        - channel
-        - payload
-    - channel must be explicitly allowed
-    - payload must already be a dict
     - no parsing
     - no coercion
     - no repair
     - no fallback
     - no payload mutation
-
-    Output:
-    - returns accepted payload unchanged
-    - raises ValueError on any rejection
+    - policy is static and deterministic
     """
+
     if not isinstance(envelope, dict):
         raise ValueError("INVALID_ENVELOPE_TYPE")
 
@@ -45,9 +47,15 @@ def intake_channel_router_v0_1(envelope: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(channel, str) or not channel:
         raise ValueError("INVALID_CHANNEL_TYPE")
 
-    if channel not in ALLOWED_CHANNELS_V0_1:
+    # ---- Phase 19 policy enforcement ----
+    policy = CHANNEL_POLICY_V0_1.get(channel)
+    if policy is None:
         raise ValueError("UNKNOWN_CHANNEL")
 
+    if policy["allowed"] is not True:
+        raise ValueError("CHANNEL_NOT_ALLOWED")
+
+    # ---- Phase 18 checks remain ----
     if not isinstance(payload, dict):
         raise ValueError("INVALID_PAYLOAD_TYPE")
 
