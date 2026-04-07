@@ -270,3 +270,136 @@ def detect_execution_drift_v0_1(
         "baseline_envelope": baseline_envelope,
         "replayed_envelope": replayed_envelope,
     }
+
+# =========================
+# Phase 29 — Audit Record
+# =========================
+
+AUDIT_RECORD_KEYS_V0_1 = (
+    "audit_status",
+    "envelope",
+    "drift_status",
+    "audit_fingerprint",
+)
+
+AUDIT_VALID = "AUDIT_VALID"
+AUDIT_INVALID = "AUDIT_INVALID"
+
+
+def _canonicalize_audit_payload_bytes_v0_1(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _fingerprint_audit_payload_v0_1(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        _canonicalize_audit_payload_bytes_v0_1(payload)
+    ).hexdigest()
+
+
+def create_audit_record_v0_1(
+    envelope: Any,
+    drift_report: Any,
+) -> dict[str, Any]:
+    """
+    Create a deterministic audit record from a verified envelope and drift report.
+
+    Contract:
+    - envelope must pass Phase 26 verification
+    - drift_report must match Phase 28 structure
+
+    Output:
+    - audit_status
+    - envelope
+    - drift_status
+    - audit_fingerprint
+
+    Fail-closed:
+    - invalid envelope
+    - invalid drift report
+    """
+    if not verify_canonical_execution_output_envelope_v0_1(envelope):
+        return {
+            "audit_status": AUDIT_INVALID,
+            "envelope": None,
+            "drift_status": None,
+            "audit_fingerprint": None,
+        }
+
+    if not isinstance(drift_report, dict):
+        return {
+            "audit_status": AUDIT_INVALID,
+            "envelope": envelope,
+            "drift_status": None,
+            "audit_fingerprint": None,
+        }
+
+    drift_status = drift_report.get("drift_status")
+    if drift_status not in (
+        NO_DRIFT,
+        DRIFT_DETECTED,
+        INVALID_BASELINE,
+        INVALID_REPLAY,
+    ):
+        return {
+            "audit_status": AUDIT_INVALID,
+            "envelope": envelope,
+            "drift_status": None,
+            "audit_fingerprint": None,
+        }
+
+    audit_payload = {
+        "envelope": envelope,
+        "drift_status": drift_status,
+    }
+
+    audit_fingerprint = _fingerprint_audit_payload_v0_1(audit_payload)
+
+    return {
+        "audit_status": AUDIT_VALID,
+        "envelope": envelope,
+        "drift_status": drift_status,
+        "audit_fingerprint": audit_fingerprint,
+    }
+
+
+def verify_audit_record_v0_1(record: Any) -> bool:
+    """
+    Verify deterministic integrity of an audit record.
+    """
+    if not isinstance(record, dict):
+        return False
+
+    if tuple(record.keys()) != AUDIT_RECORD_KEYS_V0_1:
+        return False
+
+    if record.get("audit_status") != AUDIT_VALID:
+        return False
+
+    envelope = record.get("envelope")
+    drift_status = record.get("drift_status")
+    fingerprint = record.get("audit_fingerprint")
+
+    if not verify_canonical_execution_output_envelope_v0_1(envelope):
+        return False
+
+    if drift_status not in (
+        NO_DRIFT,
+        DRIFT_DETECTED,
+        INVALID_BASELINE,
+        INVALID_REPLAY,
+    ):
+        return False
+
+    expected = create_audit_record_v0_1(
+        envelope,
+        {"drift_status": drift_status},
+    )
+
+    if expected.get("audit_fingerprint") != fingerprint:
+        return False
+
+    return True
