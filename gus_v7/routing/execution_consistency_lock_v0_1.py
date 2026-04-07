@@ -1,9 +1,10 @@
 """
-GUS v7 — Phase 25
-Cross-Execution Consistency Lock (v0.1)
+GUS v7 — Phases 25-26
+Cross-Execution Consistency Lock and Canonical Output Fingerprint Lock (v0.1)
 
 STRICT:
 - Consistency proof layer only
+- Canonical envelope layer only
 - No execution logic changes
 - No inference
 - No mutation
@@ -24,6 +25,12 @@ CROSS_CASE_REPORT_KEYS_V0_1 = (
     "batch_results",
     "conflict_flags",
     "pattern_signals",
+)
+
+CANONICAL_OUTPUT_ENVELOPE_KEYS_V0_1 = (
+    "execution_type",
+    "execution_output",
+    "execution_fingerprint",
 )
 
 
@@ -88,6 +95,16 @@ def _to_canonical_execution_payload_v0_1(
     return None
 
 
+def _canonicalize_execution_payload_bytes_v0_1(
+    canonical_payload: dict[str, Any],
+) -> bytes:
+    return json.dumps(
+        canonical_payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
 def fingerprint_execution_output_v0_1(execution_output: Any) -> str | None:
     """
     Produce a deterministic fingerprint for a canonical execution output.
@@ -105,10 +122,63 @@ def fingerprint_execution_output_v0_1(execution_output: Any) -> str | None:
     if canonical_payload is None:
         return None
 
-    canonical_bytes = json.dumps(
-        canonical_payload,
-        ensure_ascii=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-
+    canonical_bytes = _canonicalize_execution_payload_bytes_v0_1(canonical_payload)
     return hashlib.sha256(canonical_bytes).hexdigest()
+
+
+def wrap_canonical_execution_output_v0_1(
+    execution_output: Any,
+) -> dict[str, Any] | None:
+    """
+    Wrap a canonical execution output inside a deterministic output envelope.
+
+    Envelope contract:
+    - execution_type
+    - execution_output
+    - execution_fingerprint
+
+    Fail-closed on:
+    - unsupported output shape
+    - fingerprint generation failure
+    """
+    canonical_payload = _to_canonical_execution_payload_v0_1(execution_output)
+    if canonical_payload is None:
+        return None
+
+    fingerprint = fingerprint_execution_output_v0_1(execution_output)
+    if fingerprint is None:
+        return None
+
+    return {
+        "execution_type": canonical_payload["execution_type"],
+        "execution_output": canonical_payload["execution_output"],
+        "execution_fingerprint": fingerprint,
+    }
+
+
+def verify_canonical_execution_output_envelope_v0_1(envelope: Any) -> bool:
+    """
+    Verify that a canonical output envelope is structurally valid and that the
+    embedded fingerprint matches the embedded execution output exactly.
+    """
+    if not isinstance(envelope, dict):
+        return False
+
+    if tuple(envelope.keys()) != CANONICAL_OUTPUT_ENVELOPE_KEYS_V0_1:
+        return False
+
+    execution_type = envelope.get("execution_type")
+    execution_output = envelope.get("execution_output")
+    execution_fingerprint = envelope.get("execution_fingerprint")
+
+    if not isinstance(execution_type, str) or not execution_type:
+        return False
+
+    if not isinstance(execution_fingerprint, str) or not execution_fingerprint:
+        return False
+
+    expected_envelope = wrap_canonical_execution_output_v0_1(execution_output)
+    if expected_envelope is None:
+        return False
+
+    return envelope == expected_envelope
