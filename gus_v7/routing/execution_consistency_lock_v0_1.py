@@ -1,12 +1,13 @@
 """
-GUS v7 — Phases 25-27
+GUS v7 — Phases 25-28
 Cross-Execution Consistency Lock, Canonical Output Fingerprint Lock,
-and Replay Verification System (v0.1)
+Replay Verification System, and Drift Detection Lock (v0.1)
 
 STRICT:
 - Consistency proof layer only
 - Canonical envelope layer only
 - Replay verification layer only
+- Drift detection layer only
 - No execution logic changes
 - No inference
 - No mutation
@@ -34,6 +35,18 @@ CANONICAL_OUTPUT_ENVELOPE_KEYS_V0_1 = (
     "execution_output",
     "execution_fingerprint",
 )
+
+DRIFT_REPORT_KEYS_V0_1 = (
+    "drift_status",
+    "baseline_envelope",
+    "replayed_envelope",
+)
+
+
+NO_DRIFT = "NO_DRIFT"
+DRIFT_DETECTED = "DRIFT_DETECTED"
+INVALID_BASELINE = "INVALID_BASELINE"
+INVALID_REPLAY = "INVALID_REPLAY"
 
 
 def _is_allowed_router_output_v0_1(value: Any) -> bool:
@@ -209,3 +222,51 @@ def verify_replayed_execution_output_v0_1(
         return False
 
     return baseline_envelope == replayed_envelope
+
+
+def detect_execution_drift_v0_1(
+    baseline_envelope: Any,
+    replayed_execution_output: Any,
+) -> dict[str, Any]:
+    """
+    Detect deterministic drift between a baseline canonical envelope and a
+    replayed execution output.
+
+    Drift report contract:
+    - drift_status
+    - baseline_envelope
+    - replayed_envelope
+
+    Fail-closed statuses:
+    - INVALID_BASELINE
+    - INVALID_REPLAY
+    """
+    if not verify_canonical_execution_output_envelope_v0_1(baseline_envelope):
+        return {
+            "drift_status": INVALID_BASELINE,
+            "baseline_envelope": None,
+            "replayed_envelope": None,
+        }
+
+    replayed_envelope = wrap_canonical_execution_output_v0_1(
+        replayed_execution_output
+    )
+    if replayed_envelope is None:
+        return {
+            "drift_status": INVALID_REPLAY,
+            "baseline_envelope": baseline_envelope,
+            "replayed_envelope": None,
+        }
+
+    if baseline_envelope == replayed_envelope:
+        return {
+            "drift_status": NO_DRIFT,
+            "baseline_envelope": baseline_envelope,
+            "replayed_envelope": replayed_envelope,
+        }
+
+    return {
+        "drift_status": DRIFT_DETECTED,
+        "baseline_envelope": baseline_envelope,
+        "replayed_envelope": replayed_envelope,
+    }
