@@ -17,6 +17,7 @@ from importlib import import_module
 from typing import Any
 
 from gus_v7.registry.case_registry_v0_1 import CASE_REGISTRY_V0_1
+from gus_v7.routing.execution_contract_v0_1 import accept_execution_contract_v0_1
 
 
 PASS = "PASS"
@@ -87,12 +88,15 @@ def route_and_validate_case(case_data: dict) -> str:
     deterministic outcome.
 
     Contract:
-    - input must be a dict with non-empty string case_id
+    - router entry must pass Phase 21 execution contract
+    - router accepts single-case dict only
     - routing is canonical via CASE_REGISTRY_V0_1 only
     - no fallback, no inference, no alternative path
     - output must be PASS, FAIL, or INSUFFICIENT_EVIDENCE only
 
     Fail-closed on:
+    - invalid execution-entry contract
+    - batch tuple at single-case router boundary
     - invalid input
     - unknown case_id
     - malformed registry entry
@@ -100,10 +104,17 @@ def route_and_validate_case(case_data: dict) -> str:
     - validator exception
     - invalid validator output
     """
-    if not _is_valid_case_input_v0_1(case_data):
+    accepted_execution_entry = accept_execution_contract_v0_1(case_data)
+    if accepted_execution_entry is None:
         return FAIL
 
-    case_id = case_data["case_id"]
+    if not isinstance(accepted_execution_entry, dict):
+        return FAIL
+
+    if not _is_valid_case_input_v0_1(accepted_execution_entry):
+        return FAIL
+
+    case_id = accepted_execution_entry["case_id"]
     registry_entry = _get_registry_entry_v0_1(case_id)
     if registry_entry is None:
         return FAIL
@@ -113,7 +124,7 @@ def route_and_validate_case(case_data: dict) -> str:
         return FAIL
 
     try:
-        result = validator_function(case_data)
+        result = validator_function(accepted_execution_entry)
     except Exception:
         return FAIL
 
