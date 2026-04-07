@@ -586,3 +586,89 @@ def verify_audit_chain_sequence_v0_1(chain_links: Any) -> dict[str, Any]:
         "chain_status": CHAIN_VALID,
         "verified_link_count": verified_count,
     }
+
+# =========================
+# Phase 32 — Chain Snapshot & Anchor Lock
+# =========================
+
+CHAIN_ANCHOR_KEYS_V0_1 = (
+    "anchor_status",
+    "verified_link_count",
+    "chain_fingerprint",
+)
+
+ANCHOR_VALID = "ANCHOR_VALID"
+ANCHOR_INVALID = "ANCHOR_INVALID"
+
+
+def _canonicalize_chain_anchor_payload_bytes_v0_1(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _fingerprint_chain_anchor_payload_v0_1(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        _canonicalize_chain_anchor_payload_bytes_v0_1(payload)
+    ).hexdigest()
+
+
+def create_chain_anchor_v0_1(chain_links: Any) -> dict[str, Any]:
+    """
+    Freeze a verified full audit chain into a deterministic anchor record.
+
+    Contract:
+    - chain_links must pass Phase 31 full-chain verification
+
+    Output:
+    - anchor_status
+    - verified_link_count
+    - chain_fingerprint
+
+    Fail-closed on:
+    - invalid chain input
+    """
+    chain_report = verify_audit_chain_sequence_v0_1(chain_links)
+    if chain_report.get("chain_status") != CHAIN_VALID:
+        return {
+            "anchor_status": ANCHOR_INVALID,
+            "verified_link_count": 0,
+            "chain_fingerprint": None,
+        }
+
+    anchor_payload = {
+        "chain_links": chain_links,
+        "verified_link_count": chain_report["verified_link_count"],
+    }
+    chain_fingerprint = _fingerprint_chain_anchor_payload_v0_1(anchor_payload)
+
+    return {
+        "anchor_status": ANCHOR_VALID,
+        "verified_link_count": chain_report["verified_link_count"],
+        "chain_fingerprint": chain_fingerprint,
+    }
+
+
+def verify_chain_anchor_v0_1(anchor_record: Any, chain_links: Any) -> bool:
+    """
+    Verify deterministic integrity of a chain anchor against the supplied chain.
+    """
+    if not isinstance(anchor_record, dict):
+        return False
+
+    if tuple(anchor_record.keys()) != CHAIN_ANCHOR_KEYS_V0_1:
+        return False
+
+    if anchor_record.get("anchor_status") != ANCHOR_VALID:
+        return False
+
+    if not isinstance(anchor_record.get("verified_link_count"), int):
+        return False
+
+    if not isinstance(anchor_record.get("chain_fingerprint"), str):
+        return False
+
+    expected = create_chain_anchor_v0_1(chain_links)
+    return anchor_record == expected
