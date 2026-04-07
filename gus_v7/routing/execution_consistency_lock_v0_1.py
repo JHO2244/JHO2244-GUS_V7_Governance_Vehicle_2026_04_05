@@ -513,3 +513,76 @@ def verify_audit_chain_link_v0_1(link: Any) -> bool:
         return chain_fingerprint == expected_chain_fingerprint
 
     return expected is not None and link == expected
+
+# =========================
+# Phase 31 — Chain Verification Traversal
+# =========================
+
+CHAIN_TRAVERSAL_REPORT_KEYS_V0_1 = (
+    "chain_status",
+    "verified_link_count",
+)
+
+CHAIN_VALID = "CHAIN_VALID"
+CHAIN_INVALID = "CHAIN_INVALID"
+
+
+def verify_audit_chain_sequence_v0_1(chain_links: Any) -> dict[str, Any]:
+    """
+    Verify a full ordered audit chain from root to latest.
+
+    Contract:
+    - chain_links must be a tuple of Phase 30 chain links
+    - first link must be a root link (previous_audit_fingerprint is None)
+    - each next link must reference the previous link's current audit fingerprint
+
+    Output:
+    - chain_status
+    - verified_link_count
+
+    Fail-closed on:
+    - invalid container
+    - empty chain
+    - invalid link
+    - broken fingerprint sequence
+    """
+    if not isinstance(chain_links, tuple) or len(chain_links) == 0:
+        return {
+            "chain_status": CHAIN_INVALID,
+            "verified_link_count": 0,
+        }
+
+    verified_count = 0
+    expected_previous_fingerprint = None
+
+    for index, link in enumerate(chain_links):
+        if not verify_audit_chain_link_v0_1(link):
+            return {
+                "chain_status": CHAIN_INVALID,
+                "verified_link_count": verified_count,
+            }
+
+        actual_previous_fingerprint = link["previous_audit_fingerprint"]
+        current_audit_record = link["current_audit_record"]
+        current_audit_fingerprint = current_audit_record["audit_fingerprint"]
+
+        if index == 0:
+            if actual_previous_fingerprint is not None:
+                return {
+                    "chain_status": CHAIN_INVALID,
+                    "verified_link_count": verified_count,
+                }
+        else:
+            if actual_previous_fingerprint != expected_previous_fingerprint:
+                return {
+                    "chain_status": CHAIN_INVALID,
+                    "verified_link_count": verified_count,
+                }
+
+        verified_count += 1
+        expected_previous_fingerprint = current_audit_fingerprint
+
+    return {
+        "chain_status": CHAIN_VALID,
+        "verified_link_count": verified_count,
+    }
