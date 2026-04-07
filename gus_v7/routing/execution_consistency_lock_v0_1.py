@@ -1,10 +1,12 @@
 """
-GUS v7 — Phases 25-26
-Cross-Execution Consistency Lock and Canonical Output Fingerprint Lock (v0.1)
+GUS v7 — Phases 25-27
+Cross-Execution Consistency Lock, Canonical Output Fingerprint Lock,
+and Replay Verification System (v0.1)
 
 STRICT:
 - Consistency proof layer only
 - Canonical envelope layer only
+- Replay verification layer only
 - No execution logic changes
 - No inference
 - No mutation
@@ -182,3 +184,28 @@ def verify_canonical_execution_output_envelope_v0_1(envelope: Any) -> bool:
         return False
 
     return envelope == expected_envelope
+
+
+def verify_replayed_execution_output_v0_1(
+    baseline_envelope: Any,
+    replayed_execution_output: Any,
+) -> bool:
+    """
+    Verify that a replayed execution output reproduces the exact same canonical
+    output envelope as the baseline envelope.
+
+    Fail-closed on:
+    - invalid baseline envelope
+    - invalid replayed execution output
+    - any envelope mismatch
+    """
+    if not verify_canonical_execution_output_envelope_v0_1(baseline_envelope):
+        return False
+
+    replayed_envelope = wrap_canonical_execution_output_v0_1(
+        replayed_execution_output
+    )
+    if replayed_envelope is None:
+        return False
+
+    return baseline_envelope == replayed_envelope
