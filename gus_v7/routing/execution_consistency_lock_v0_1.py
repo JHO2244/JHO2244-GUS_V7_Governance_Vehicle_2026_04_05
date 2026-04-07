@@ -403,3 +403,113 @@ def verify_audit_record_v0_1(record: Any) -> bool:
         return False
 
     return True
+
+# =========================
+# Phase 30 — Audit Chain Linking
+# =========================
+
+AUDIT_CHAIN_LINK_KEYS_V0_1 = (
+    "previous_audit_fingerprint",
+    "current_audit_record",
+    "chain_fingerprint",
+)
+
+
+def _canonicalize_chain_payload_bytes_v0_1(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _fingerprint_chain_payload_v0_1(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        _canonicalize_chain_payload_bytes_v0_1(payload)
+    ).hexdigest()
+
+
+def link_audit_record_v0_1(
+    previous_audit_record: Any,
+    current_audit_record: Any,
+) -> dict[str, Any] | None:
+    """
+    Link a verified current audit record to an optional verified previous audit
+    record, producing a deterministic tamper-evident chain link.
+
+    Contract:
+    - previous_audit_record may be None (chain root)
+    - current_audit_record must be a valid Phase 29 audit record
+
+    Output:
+    - previous_audit_fingerprint
+    - current_audit_record
+    - chain_fingerprint
+
+    Fail-closed:
+    - invalid previous audit record
+    - invalid current audit record
+    """
+    if previous_audit_record is not None:
+        if not verify_audit_record_v0_1(previous_audit_record):
+            return None
+        previous_audit_fingerprint = previous_audit_record["audit_fingerprint"]
+    else:
+        previous_audit_fingerprint = None
+
+    if not verify_audit_record_v0_1(current_audit_record):
+        return None
+
+    chain_payload = {
+        "previous_audit_fingerprint": previous_audit_fingerprint,
+        "current_audit_record": current_audit_record,
+    }
+
+    chain_fingerprint = _fingerprint_chain_payload_v0_1(chain_payload)
+
+    return {
+        "previous_audit_fingerprint": previous_audit_fingerprint,
+        "current_audit_record": current_audit_record,
+        "chain_fingerprint": chain_fingerprint,
+    }
+
+
+def verify_audit_chain_link_v0_1(link: Any) -> bool:
+    """
+    Verify deterministic integrity of an audit chain link.
+    """
+    if not isinstance(link, dict):
+        return False
+
+    if tuple(link.keys()) != AUDIT_CHAIN_LINK_KEYS_V0_1:
+        return False
+
+    previous_audit_fingerprint = link.get("previous_audit_fingerprint")
+    current_audit_record = link.get("current_audit_record")
+    chain_fingerprint = link.get("chain_fingerprint")
+
+    if previous_audit_fingerprint is not None and not isinstance(
+        previous_audit_fingerprint, str
+    ):
+        return False
+
+    if not isinstance(chain_fingerprint, str) or not chain_fingerprint:
+        return False
+
+    if not verify_audit_record_v0_1(current_audit_record):
+        return False
+
+    expected = link_audit_record_v0_1(None, current_audit_record)
+    if previous_audit_fingerprint is not None:
+        synthetic_previous = dict(current_audit_record)
+        synthetic_previous["audit_fingerprint"] = previous_audit_fingerprint
+        expected_payload = {
+            "previous_audit_fingerprint": previous_audit_fingerprint,
+            "current_audit_record": current_audit_record,
+        }
+        expected_chain_fingerprint = _fingerprint_chain_payload_v0_1(
+            expected_payload
+        )
+        return chain_fingerprint == expected_chain_fingerprint
+
+    return expected is not None and link == expected
