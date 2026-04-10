@@ -8,6 +8,8 @@ STRICT:
 - Fail-closed enforcement
 """
 
+import pytest
+
 from gus_v7.decision_conflict_detection.decision_conflict_detection_validator_v0_1 import (
     validate_decision_conflict_detection_v0_1,
 )
@@ -83,41 +85,37 @@ def test_phase46_accepts_different_case_as_no_conflict():
     )
 
 
-def test_phase46_missing_case_ids_returns_no_conflict():
+def test_phase46_missing_case_ids_fail_closed():
     decision_a = _decision_a()
     decision_b = _decision_b()
     decision_a["case_id"] = ""
-    assert (
+
+    with pytest.raises(ValueError, match="INVALID_DECISION"):
         validate_decision_conflict_detection_v0_1(
             decision_a,
             decision_b,
         )
-        == "NO_CONFLICT"
-    )
 
 
-def test_phase46_missing_binding_ids_returns_no_conflict():
+def test_phase46_missing_binding_ids_fail_closed():
     decision_a = _decision_a()
     decision_b = _decision_b()
     decision_b["evidence_binding_id"] = ""
-    assert (
+
+    with pytest.raises(ValueError, match="INVALID_DECISION"):
         validate_decision_conflict_detection_v0_1(
             decision_a,
             decision_b,
         )
-        == "NO_CONFLICT"
-    )
 
 
-def test_phase46_missing_outputs_returns_no_conflict():
+def test_phase46_missing_outputs_fail_closed():
     decision_a = _decision_a()
     decision_b = _decision_b()
     decision_b["decision_output"] = ""
-    assert (
+
+    with pytest.raises(ValueError, match="INVALID_DECISION"):
         validate_decision_conflict_detection_v0_1(
             decision_a,
             decision_b,
         )
-        == "NO_CONFLICT"
-    )
-    

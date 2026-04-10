@@ -17,6 +17,9 @@ def validate_decision_conflict_detection_v0_1(
     """
     Returns:
         "CONFLICT" or "NO_CONFLICT"
+
+    Fail-closed behavior:
+    - missing required reference fields -> ValueError
     """
 
     case_id_a = decision_a.get("case_id")
@@ -32,13 +35,13 @@ def validate_decision_conflict_detection_v0_1(
     # REQUIRED REFERENCE FIELDS
     # -------------------------
     if not case_id_a or not case_id_b:
-        return "NO_CONFLICT"
+        raise ValueError("INVALID_DECISION")
 
     if not binding_id_a or not binding_id_b:
-        return "NO_CONFLICT"
+        raise ValueError("INVALID_DECISION")
 
     if not output_a or not output_b:
-        return "NO_CONFLICT"
+        raise ValueError("INVALID_DECISION")
 
     # -------------------------
     # CONFLICT RULE
