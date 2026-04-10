@@ -1,3 +1,5 @@
+import pytest
+
 from gus_v7.decision_conflict_detection.decision_conflict_detection_validator_v0_1 import (
     validate_decision_conflict_detection_v0_1,
 )
@@ -18,7 +20,7 @@ def test_attack003_conflicting_decisions_detected():
     assert validate_decision_conflict_detection_v0_1(a, b) == "CONFLICT"
 
 
-def test_attack003_missing_output_suppresses_conflict():
+def test_attack003_missing_output_fails_closed():
     a = _decision("CASE-001", "BIND-001", "PASS")
     b = {
         "case_id": "CASE-001",
@@ -26,10 +28,11 @@ def test_attack003_missing_output_suppresses_conflict():
         # missing decision_output
     }
 
-    assert validate_decision_conflict_detection_v0_1(a, b) == "NO_CONFLICT"
+    with pytest.raises(ValueError, match="INVALID_DECISION"):
+        validate_decision_conflict_detection_v0_1(a, b)
 
 
-def test_attack003_missing_binding_id_suppresses_conflict():
+def test_attack003_missing_binding_id_fails_closed():
     a = _decision("CASE-001", "BIND-001", "PASS")
     b = {
         "case_id": "CASE-001",
@@ -37,7 +40,8 @@ def test_attack003_missing_binding_id_suppresses_conflict():
         "decision_output": "FAIL",
     }
 
-    assert validate_decision_conflict_detection_v0_1(a, b) == "NO_CONFLICT"
+    with pytest.raises(ValueError, match="INVALID_DECISION"):
+        validate_decision_conflict_detection_v0_1(a, b)
 
 
 def test_attack003_different_case_no_conflict():
@@ -45,4 +49,3 @@ def test_attack003_different_case_no_conflict():
     b = _decision("CASE-002", "BIND-001", "FAIL")
 
     assert validate_decision_conflict_detection_v0_1(a, b) == "NO_CONFLICT"
-
