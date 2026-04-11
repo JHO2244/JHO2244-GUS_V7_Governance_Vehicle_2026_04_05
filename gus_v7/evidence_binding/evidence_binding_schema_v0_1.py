@@ -16,6 +16,7 @@ STRICT:
 EVIDENCE_BINDING_KEYS = (
     "evaluation_result",
     "evidence_bundle",
+    "supported_evaluation_results",
     "binding_integrity",
 )
 
@@ -28,6 +29,20 @@ EVIDENCE_BUNDLE_TYPE_REQUIRED = "tuple"
 EVIDENCE_BUNDLE_MIN_ITEMS = 1
 EVIDENCE_BUNDLE_ORDER_REQUIRED = True
 EVIDENCE_BUNDLE_ITEMS_MUST_CONFORM_TO = "PHASE33_EVIDENCE_SCHEMA_V0_1"
+
+
+# =========================
+# OUTCOME ALIGNMENT RULES
+# =========================
+
+SUPPORTED_EVALUATION_RESULTS_TYPE_REQUIRED = "tuple"
+SUPPORTED_EVALUATION_RESULTS_MIN_ITEMS = 1
+VALID_EVALUATION_RESULTS = (
+    "PASS",
+    "FAIL",
+    "INSUFFICIENT_EVIDENCE",
+    "OUT_OF_SCOPE",
+)
 
 
 # =========================
@@ -58,11 +73,7 @@ BINDING_MODE_REQUIRED = "deterministic_attachment"
 # STRUCTURE LOCKS
 # =========================
 
-REQUIRED_NON_EMPTY_FIELDS = (
-    "evaluation_result",
-    "evidence_bundle",
-    "binding_integrity",
-)
+REQUIRED_NON_EMPTY_FIELDS = EVIDENCE_BINDING_KEYS
 
 NO_EXTRA_FIELDS_ALLOWED = True
 IMMUTABLE_AFTER_CREATION = True
@@ -78,9 +89,10 @@ VALIDATION_RULES = (
     "B3_EVIDENCE_BUNDLE_PRESENCE_LOCK",
     "B4_EVIDENCE_BUNDLE_ORDER_LOCK",
     "B5_PHASE33_CONFORMANCE_LOCK",
-    "B6_BINDING_INTEGRITY_LOCK",
-    "B7_NO_EXTRA_FIELDS_LOCK",
-    "B8_IMMUTABILITY_LOCK",
+    "B6_SUPPORTED_EVALUATION_RESULTS_LOCK",
+    "B7_BINDING_INTEGRITY_LOCK",
+    "B8_NO_EXTRA_FIELDS_LOCK",
+    "B9_IMMUTABILITY_LOCK",
 )
 
 
