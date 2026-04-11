@@ -14,6 +14,9 @@ from gus_v7.evidence_binding.evidence_binding_schema_v0_1 import (
     EVIDENCE_BUNDLE_MIN_ITEMS,
     EVIDENCE_BUNDLE_ORDER_REQUIRED,
     EVIDENCE_BUNDLE_ITEMS_MUST_CONFORM_TO,
+    SUPPORTED_EVALUATION_RESULTS_TYPE_REQUIRED,
+    SUPPORTED_EVALUATION_RESULTS_MIN_ITEMS,
+    VALID_EVALUATION_RESULTS,
     BINDING_INTEGRITY_KEYS,
     VALID_BINDING_STATUS_VALUES,
     BINDING_MODE_REQUIRED,
@@ -29,6 +32,7 @@ def test_phase34_binding_keys_exact_match():
     expected = (
         "evaluation_result",
         "evidence_bundle",
+        "supported_evaluation_results",
         "binding_integrity",
     )
     assert EVIDENCE_BINDING_KEYS == expected
@@ -52,6 +56,23 @@ def test_phase34_evidence_bundle_order_required():
 
 def test_phase34_evidence_bundle_phase33_conformance_required():
     assert EVIDENCE_BUNDLE_ITEMS_MUST_CONFORM_TO == "PHASE33_EVIDENCE_SCHEMA_V0_1"
+
+
+def test_phase34_supported_evaluation_results_type_required():
+    assert SUPPORTED_EVALUATION_RESULTS_TYPE_REQUIRED == "tuple"
+
+
+def test_phase34_supported_evaluation_results_min_items():
+    assert SUPPORTED_EVALUATION_RESULTS_MIN_ITEMS == 1
+
+
+def test_phase34_valid_evaluation_results_locked():
+    assert VALID_EVALUATION_RESULTS == (
+        "PASS",
+        "FAIL",
+        "INSUFFICIENT_EVIDENCE",
+        "OUT_OF_SCOPE",
+    )
 
 
 def test_phase34_binding_integrity_keys_exact_match():
@@ -87,9 +108,10 @@ def test_phase34_validation_rules_defined():
         "B3_EVIDENCE_BUNDLE_PRESENCE_LOCK",
         "B4_EVIDENCE_BUNDLE_ORDER_LOCK",
         "B5_PHASE33_CONFORMANCE_LOCK",
-        "B6_BINDING_INTEGRITY_LOCK",
-        "B7_NO_EXTRA_FIELDS_LOCK",
-        "B8_IMMUTABILITY_LOCK",
+        "B6_SUPPORTED_EVALUATION_RESULTS_LOCK",
+        "B7_BINDING_INTEGRITY_LOCK",
+        "B8_NO_EXTRA_FIELDS_LOCK",
+        "B9_IMMUTABILITY_LOCK",
     )
 
 

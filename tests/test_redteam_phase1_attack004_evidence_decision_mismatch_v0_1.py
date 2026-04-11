@@ -24,39 +24,37 @@ def _evidence(
     }
 
 
-def _consistent_bundle():
+def _bundle():
     return (
         _evidence("E-001", "doc://evidence/1", "hash-001"),
         _evidence("E-002", "doc://evidence/2", "hash-002"),
     )
 
 
-def test_attack004_same_evidence_binds_to_pass():
-    assert validate_evidence_decision_binding_v0_1(
-        "PASS",
-        _consistent_bundle(),
-    ) == "BOUND"
+def test_attack004_rejects_unsupported_outcome():
+    supported = ("PASS",)
 
-
-def test_attack004_same_evidence_binds_to_fail():
     assert validate_evidence_decision_binding_v0_1(
         "FAIL",
-        _consistent_bundle(),
-    ) == "BOUND"
+        _bundle(),
+        supported,
+    ) == "REJECTED"
 
 
-def test_attack004_same_evidence_binds_to_out_of_scope():
+def test_attack004_accepts_supported_outcome():
+    supported = ("PASS",)
+
     assert validate_evidence_decision_binding_v0_1(
-        "OUT_OF_SCOPE",
-        _consistent_bundle(),
+        "PASS",
+        _bundle(),
+        supported,
     ) == "BOUND"
 
 
-def test_attack004_invalid_evidence_member_still_fails_closed():
-    invalid_bundle = (
-        _evidence("E-001", "doc://evidence/1", ""),
-        _evidence("E-002", "doc://evidence/2", "hash-002"),
-    )
-
-    with pytest.raises(ValueError, match="INVALID_EVIDENCE"):
-        validate_evidence_decision_binding_v0_1("PASS", invalid_bundle)
+def test_attack004_invalid_supported_results_fails_closed():
+    with pytest.raises(ValueError):
+        validate_evidence_decision_binding_v0_1(
+            "PASS",
+            _bundle(),
+            (),
+        )
