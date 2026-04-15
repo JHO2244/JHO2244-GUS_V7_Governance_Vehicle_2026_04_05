@@ -1,5 +1,5 @@
 """
-GUS v7 — Phase 51
+GUS v7 - Phase 51
 Audit Reconstruction Tests (v0.1)
 
 STRICT:
@@ -65,12 +65,11 @@ def test_phase51_reconstruction_path_contains_all_core_links():
     )
 
 
-def test_phase51_reconstruction_reflects_input_values_exactly():
+def test_phase51_reconstruction_rejects_verdict_execution_mismatch():
     trace = _valid_trace()
     trace["execution_result"] = "BLOCK"
-    result = reconstruct_audit_path_v0_1(trace)
-    assert result["execution_result"] == "BLOCK"
-    assert "|execution_result=BLOCK" in result["reconstructed_path"]
+    with pytest.raises(ValueError, match="INVALID_TRACE"):
+        reconstruct_audit_path_v0_1(trace)
 
 
 def test_phase51_reconstruction_rejects_invalid_trace():
