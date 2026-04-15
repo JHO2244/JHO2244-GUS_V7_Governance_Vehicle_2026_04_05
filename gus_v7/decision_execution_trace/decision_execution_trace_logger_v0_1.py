@@ -19,6 +19,19 @@ from gus_v7.decision_execution_trace.decision_execution_trace_schema_v0_1 import
 )
 
 
+def _execution_matches_verdict(trace: dict) -> bool:
+    verdict = trace["final_integrity_verdict"]
+    execution = trace["execution_result"]
+
+    if verdict == "INTEGRITY_CONFIRMED" and execution == "EXECUTE":
+        return True
+
+    if verdict == "INTEGRITY_REJECTED" and execution == "BLOCK":
+        return True
+
+    return False
+
+
 def log_decision_execution_trace_v0_1(trace: dict) -> str:
     """
     Returns:
@@ -54,6 +67,12 @@ def log_decision_execution_trace_v0_1(trace: dict) -> str:
         trace["final_integrity_verdict"]
         not in VALID_FINAL_INTEGRITY_VERDICTS
     ):
+        return "INVALID"
+
+    # -------------------------
+    # EXECUTION / VERDICT BINDING
+    # -------------------------
+    if not _execution_matches_verdict(trace):
         return "INVALID"
 
     return "VALID"
