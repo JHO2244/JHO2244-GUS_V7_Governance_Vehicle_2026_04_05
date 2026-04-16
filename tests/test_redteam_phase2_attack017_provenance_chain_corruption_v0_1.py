@@ -4,10 +4,12 @@ Provenance Chain Corruption (v0.1)
 
 STRICT:
 - Deterministic
-- Fail-first attack proof
+- Attack proof retained as regression lock
 - No mutation
 - No inference
 """
+
+import pytest
 
 from gus_v7.governance_rules.governance_rules_engine_v0_1 import (
     apply_governance_rules_v0_1,
@@ -39,7 +41,7 @@ def _corrupted_reconstruction() -> dict:
     }
 
 
-def test_attack017_allows_corrupted_provenance_chain():
-    result = apply_governance_rules_v0_1(_corrupted_reconstruction())
-    assert result == "GOVERNANCE_PASS"
-    
+def test_attack017_corrupted_provenance_chain_now_fails_closed():
+    with pytest.raises(ValueError, match="INVALID_RECONSTRUCTION"):
+        apply_governance_rules_v0_1(_corrupted_reconstruction())
+

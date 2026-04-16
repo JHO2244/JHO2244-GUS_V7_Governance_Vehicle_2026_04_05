@@ -1,5 +1,5 @@
 """
-GUS v7 — Phase 53
+GUS v7 - Phase 53
 Governance Rules Engine Tests (v0.1)
 
 STRICT:
@@ -66,16 +66,28 @@ def test_phase53_passes_confirmed_execute():
     assert apply_governance_rules_v0_1(reconstruction) == "GOVERNANCE_PASS"
 
 
-def test_phase53_fails_confirmed_block():
+def test_phase53_rejects_confirmed_block_with_stale_path():
     reconstruction = _valid_reconstruction()
     reconstruction["execution_result"] = "BLOCK"
-    assert apply_governance_rules_v0_1(reconstruction) == "GOVERNANCE_FAIL"
+    with pytest.raises(ValueError, match="INVALID_RECONSTRUCTION"):
+        apply_governance_rules_v0_1(reconstruction)
 
 
 def test_phase53_passes_unconfirmed_block():
     reconstruction = _valid_reconstruction()
     reconstruction["final_integrity_verdict"] = "INTEGRITY_REJECTED"
     reconstruction["execution_result"] = "BLOCK"
+    reconstruction["reconstructed_path"] = (
+        "decision_id=DEC-001"
+        "|case_id=BC-01"
+        "|evidence_binding_id=EB-001"
+        "|integrity_envelope_id=IE-001"
+        "|final_integrity_verdict=INTEGRITY_REJECTED"
+        "|execution_result=BLOCK"
+        "|trace_id=TRACE-001"
+        "|trace_timestamp=2026-04-08T12:00:00Z"
+        "|trace_sequence=0001"
+    )
     assert apply_governance_rules_v0_1(reconstruction) == "GOVERNANCE_PASS"
 
 
@@ -83,6 +95,17 @@ def test_phase53_fails_unconfirmed_execute():
     reconstruction = _valid_reconstruction()
     reconstruction["final_integrity_verdict"] = "INTEGRITY_REJECTED"
     reconstruction["execution_result"] = "EXECUTE"
+    reconstruction["reconstructed_path"] = (
+        "decision_id=DEC-001"
+        "|case_id=BC-01"
+        "|evidence_binding_id=EB-001"
+        "|integrity_envelope_id=IE-001"
+        "|final_integrity_verdict=INTEGRITY_REJECTED"
+        "|execution_result=EXECUTE"
+        "|trace_id=TRACE-001"
+        "|trace_timestamp=2026-04-08T12:00:00Z"
+        "|trace_sequence=0001"
+    )
     assert apply_governance_rules_v0_1(reconstruction) == "GOVERNANCE_FAIL"
 
 
@@ -96,5 +119,22 @@ def test_phase53_rejects_malformed_reconstruction():
 def test_phase53_rejects_invalid_execution_result():
     reconstruction = _valid_reconstruction()
     reconstruction["execution_result"] = "ALLOW"
+    with pytest.raises(ValueError, match="INVALID_RECONSTRUCTION"):
+        apply_governance_rules_v0_1(reconstruction)
+
+
+def test_phase53_rejects_corrupted_reconstructed_path():
+    reconstruction = _valid_reconstruction()
+    reconstruction["reconstructed_path"] = (
+        "decision_id=DEC-FAKE"
+        "|case_id=BC-FAKE"
+        "|evidence_binding_id=EB-FAKE"
+        "|integrity_envelope_id=IE-FAKE"
+        "|final_integrity_verdict=INTEGRITY_REJECTED"
+        "|execution_result=BLOCK"
+        "|trace_id=TRACE-FAKE"
+        "|trace_timestamp=1999-01-01T00:00:00Z"
+        "|trace_sequence=9999"
+    )
     with pytest.raises(ValueError, match="INVALID_RECONSTRUCTION"):
         apply_governance_rules_v0_1(reconstruction)
