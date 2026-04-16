@@ -1,0 +1,3 @@
+"""
+Global identity lifecycle package.
+"""
