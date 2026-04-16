@@ -1,5 +1,5 @@
 """
-GUS v7 — Phase 53
+GUS v7 - Phase 53
 Governance Rules Engine (v0.1)
 
 STRICT:
@@ -9,6 +9,11 @@ STRICT:
 - No mutation
 - No external calls
 """
+
+from gus_v7.provenance_chain_lock.provenance_chain_lock_validator_v0_1 import (
+    validate_provenance_chain_lock_v0_1,
+)
+
 
 REQUIRED_RECONSTRUCTION_KEYS = (
     "trace_id",
@@ -46,6 +51,12 @@ def apply_governance_rules_v0_1(reconstruction: dict) -> str:
             raise ValueError("INVALID_RECONSTRUCTION")
 
     # -------------------------
+    # PROVENANCE CHAIN LOCK
+    # -------------------------
+    if validate_provenance_chain_lock_v0_1(reconstruction) != "PROVENANCE_CHAIN_VALID":
+        raise ValueError("INVALID_RECONSTRUCTION")
+
+    # -------------------------
     # VALUE VALIDATION
     # -------------------------
     execution_result = reconstruction["execution_result"]
@@ -66,4 +77,3 @@ def apply_governance_rules_v0_1(reconstruction: dict) -> str:
         if execution_result == "BLOCK":
             return "GOVERNANCE_PASS"
         return "GOVERNANCE_FAIL"
-    
