@@ -59,3 +59,21 @@ def test_phase49_logger_rejects_extra_field():
     trace = _valid_trace()
     trace["extra"] = "not allowed"
     assert log_decision_execution_trace_v0_1(trace) == "INVALID"
+
+def test_phase49_logger_rejects_execute_when_integrity_rejected():
+    trace = _valid_trace()
+    trace["final_integrity_verdict"] = "INTEGRITY_REJECTED"
+    assert log_decision_execution_trace_v0_1(trace) == "INVALID"
+
+
+def test_phase49_logger_rejects_block_when_integrity_confirmed():
+    trace = _valid_trace()
+    trace["execution_result"] = "BLOCK"
+    assert log_decision_execution_trace_v0_1(trace) == "INVALID"
+
+
+def test_phase49_logger_rejects_malformed_candidate_trace():
+    trace = _valid_trace()
+    del trace["trace_id"]
+    assert log_decision_execution_trace_v0_1(trace) == "INVALID"
+
