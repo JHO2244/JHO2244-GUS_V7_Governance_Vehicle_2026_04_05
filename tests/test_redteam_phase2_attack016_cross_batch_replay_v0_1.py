@@ -9,8 +9,8 @@ STRICT:
 - No inference
 """
 
-from gus_v7.phase1_hardening.phase1_hardening_validator_v0_1 import (
-    validate_phase1_hardening_v0_1,
+from gus_v7.global_identity_lifecycle.global_identity_lifecycle_validator_v0_1 import (
+    validate_global_identity_lifecycle_v0_1,
 )
 
 
@@ -32,7 +32,7 @@ def _replayed_trace_new_context() -> dict:
     return {
         "trace_id": "TRACE-ATTACK-016",
         "decision_id": "DEC-ATTACK-016",
-        "case_id": "BC-016-B",  # changed context
+        "case_id": "BC-016-B",
         "evidence_binding_id": "EB-ATTACK-016",
         "integrity_envelope_id": "IE-ATTACK-016",
         "final_integrity_verdict": "INTEGRITY_CONFIRMED",
@@ -42,12 +42,12 @@ def _replayed_trace_new_context() -> dict:
     }
 
 
-def test_attack016_allows_cross_batch_replay_in_new_context():
-    result_a = validate_phase1_hardening_v0_1(_original_trace(), ())
-    result_b = validate_phase1_hardening_v0_1(
+def test_attack016_rejects_cross_batch_replay_in_new_context():
+    result_a = validate_global_identity_lifecycle_v0_1(_original_trace(), ())
+    result_b = validate_global_identity_lifecycle_v0_1(
         _replayed_trace_new_context(),
-        (),
+        (_original_trace(),),
     )
 
-    assert result_a == "HARDENING_VALID"
-    assert result_b == "HARDENING_VALID"
+    assert result_a == "IDENTITY_LIFECYCLE_VALID"
+    assert result_b == "IDENTITY_LIFECYCLE_INVALID"

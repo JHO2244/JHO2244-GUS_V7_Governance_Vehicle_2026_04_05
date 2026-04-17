@@ -9,8 +9,8 @@ STRICT:
 - No inference
 """
 
-from gus_v7.phase1_hardening.phase1_hardening_validator_v0_1 import (
-    validate_phase1_hardening_v0_1,
+from gus_v7.global_identity_lifecycle.global_identity_lifecycle_validator_v0_1 import (
+    validate_global_identity_lifecycle_v0_1,
 )
 
 
@@ -42,12 +42,12 @@ def _trace_b_reused_ids_new_scope() -> dict:
     }
 
 
-def test_attack015_allows_global_identity_reuse_across_separate_scopes():
-    result_a = validate_phase1_hardening_v0_1(_trace_a(), ())
-    result_b = validate_phase1_hardening_v0_1(
+def test_attack015_rejects_global_identity_reuse_across_separate_scopes():
+    result_a = validate_global_identity_lifecycle_v0_1(_trace_a(), ())
+    result_b = validate_global_identity_lifecycle_v0_1(
         _trace_b_reused_ids_new_scope(),
-        (),
+        (_trace_a(),),
     )
 
-    assert result_a == "HARDENING_VALID"
-    assert result_b == "HARDENING_VALID"
+    assert result_a == "IDENTITY_LIFECYCLE_VALID"
+    assert result_b == "IDENTITY_LIFECYCLE_INVALID"
