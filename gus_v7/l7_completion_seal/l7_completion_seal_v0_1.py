@@ -11,7 +11,6 @@ STRICT:
 """
 
 import hashlib
-from datetime import datetime
 from pathlib import Path
 
 AUTHORIZED_SIGNER = "gus_seal_signing_ed25519_priv.pem"
@@ -27,7 +26,19 @@ REQUIRED_PHASES = [
 ]
 
 
-def create_l7_completion_seal_v0_1(main_head_sha: str, seals_dir: Path) -> dict:
+def _validate_timestamp_utc(timestamp_utc: str) -> None:
+    if not isinstance(timestamp_utc, str) or timestamp_utc.strip() == "":
+        raise ValueError("INVALID_TIMESTAMP_UTC")
+
+    if not timestamp_utc.endswith("Z"):
+        raise ValueError("INVALID_TIMESTAMP_UTC")
+
+
+def create_l7_completion_seal_v0_1(
+    main_head_sha: str,
+    seals_dir: Path,
+    timestamp_utc: str,
+) -> dict:
     """
     Generates a canonical L7 Completion Seal for Phases 57–63.
 
@@ -41,6 +52,8 @@ def create_l7_completion_seal_v0_1(main_head_sha: str, seals_dir: Path) -> dict:
 
     if not isinstance(seals_dir, Path):
         raise ValueError("INVALID_SEALS_DIR")
+
+    _validate_timestamp_utc(timestamp_utc)
 
     phases_verified = []
 
@@ -62,13 +75,11 @@ def create_l7_completion_seal_v0_1(main_head_sha: str, seals_dir: Path) -> dict:
             }
         )
 
-    timestamp = datetime.utcnow().isoformat() + "Z"
-
     seal = {
         "layer_name": "L7_VEHICLE_COMPLETION",
         "head_sha": main_head_sha,
         "phases_verified": phases_verified,
-        "timestamp": timestamp,
+        "timestamp": timestamp_utc,
         "verifier_signature": None,
     }
 
