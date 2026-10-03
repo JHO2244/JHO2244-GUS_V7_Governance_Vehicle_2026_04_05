@@ -10,6 +10,7 @@ STRICT:
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -78,10 +79,11 @@ def test_phase56_rejects_invalid_head_sha(tmp_path: Path):
 
 
 def test_phase56_rejects_invalid_seals_dir():
+    invalid_seals_dir: Any = "not-a-path"
     with pytest.raises(ValueError, match="INVALID_SEALS_DIR"):
         create_governance_seal(
             "dummy_head_sha",
-            "not-a-path",
+            invalid_seals_dir,
             "2026-04-19T10:30:00Z",
         )
 
